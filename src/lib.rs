@@ -1,20 +1,46 @@
 #![no_std]
 
-use core::array::TryFromSliceError;
+use core::{array::TryFromSliceError, convert::Infallible};
 
 use bilge::prelude::*;
-use embedded_hal::{delay::DelayNs, digital::OutputPin, spi::SpiDevice};
+use embedded_hal::{delay::DelayNs, digital::{ErrorType, OutputPin}, spi::SpiDevice};
 use paste::paste;
 
-pub struct LT8722<SPI, S, EN, SWEN, D>
+mod seal {
+    pub(super) trait Sealed {}
+}
+
+#[allow(private_bounds)]
+pub trait OptionalPin: seal::Sealed {}
+
+impl<T: OutputPin + seal::Sealed> OptionalPin for T {}
+impl<T: OutputPin> seal::Sealed for T {}
+pub struct NoPin {}
+
+
+impl ErrorType for NoPin {
+    type Error = Infallible;
+}
+impl OutputPin for NoPin {
+    fn set_low(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    fn set_high(&mut self) -> Result<(), Self::Error> {
+        Ok(()) 
+    }
+}
+
+pub struct LT8722<SPI, SYNC, EN, SWEN, D>
 where
 	SPI: SpiDevice,
-	EN: OutputPin,
-	SWEN: OutputPin,
+    SYNC: OptionalPin,
+	EN: OptionalPin,
+	SWEN: OptionalPin,
 	D: DelayNs,
 {
 	spi:           SPI,
-	_sync_pin:      Option<S>,
+	_sync_pin:     SYNC,
 	enable:        EN,
 	switch_enable: SWEN,
 	delay:         D,
@@ -356,9 +382,10 @@ pub trait Er {
 	type Error;
 }
 
-impl<SPI, S, EN, SWEN, D> Er for LT8722<SPI, S, EN, SWEN, D>
+impl<SPI, SYNC, EN, SWEN, D> Er for LT8722<SPI, SYNC, EN, SWEN, D>
 where
 	SPI: SpiDevice,
+    SYNC: OptionalPin,
 	EN: OutputPin,
 	SWEN: OutputPin,
 	D: DelayNs,
@@ -377,9 +404,10 @@ const _DAC_RAMP_VALID: () = {
 	assert!(diff < 0xFF)
 };
 
-impl<SPI, S, EN, SWEN, D> LT8722<SPI, S, EN, SWEN, D>
+impl<SPI, SYNC, EN, SWEN, D> LT8722<SPI, SYNC, EN, SWEN, D>
 where
 	SPI: SpiDevice,
+    SYNC: OptionalPin,
 	EN: OutputPin,
 	SWEN: OutputPin,
 	D: DelayNs,
@@ -414,7 +442,7 @@ where
 	/// Create a new driver. Requires an [SpiDevice] that owns the relevant CS.
 	pub fn new(
 		spi: SPI,
-		_sync_pin: Option<S>,
+		_sync_pin: SYNC,
 		enable: EN,
 		switch_enable: SWEN,
 		delay: D,
