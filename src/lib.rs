@@ -132,28 +132,28 @@ impl Default for Registers {
 	fn default() -> Self {
 		Self {
 			command:   Command {
-				value: 0x08A214u32.into(),
+				value: u22::new(0x08A214u32),
 			},
 			status:    Status {
-				value: 0x0u8.into(),
+				value: u11::new(0x0u16),
 			},
 			dac_ilimn: DACILimN {
-				value: 0x1FFu16.into(),
+				value: u9::new(0x1FFu16),
 			},
 			dac_ilimp: DACILimP {
-				value: 0x0u8.into(),
+				value: u9::new(0x0u16),
 			},
 			dac:       DAC {
-				value: 0xFF000000u32.into(),
+				value: 0xFF000000u32,
 			},
 			ov_clamp:  OVClamp {
-				value: 0xFu8.into(),
+				value: u4::new(0xFu8),
 			},
 			uv_clamp:  UVClamp {
-				value: 0x0u8.into(),
+				value: u4::new(0x0u8),
 			},
 			amux:      AMux {
-				value: 0x0u8.into(),
+				value: u7::new(0x0u8),
 			},
 		}
 	}
