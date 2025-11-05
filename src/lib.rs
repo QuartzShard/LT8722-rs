@@ -99,7 +99,7 @@ macro_rules! impl_reg_field_access {
                     addr: RegAddr::$addr,
                 })?;
                 self.registers.status = read.status;
-                let _ = core::mem::replace(&mut self.registers.[<$addr:lower>], $addr::from($bits::from(read.data.ok_or(LtError::Misc)?)));
+                let _ = core::mem::replace(&mut self.registers.[<$addr:lower>], $addr::from($bits::from_u32(read.data.ok_or(LtError::Misc)?)));
                 Ok(self.registers.[<$addr:lower>].$name())
             }
         }
@@ -122,7 +122,7 @@ macro_rules! impl_reg_access {
                     addr: RegAddr::$addr,
                 })?;
                 self.registers.status = read.status;
-                self.registers.[<$addr:lower>].set_val_0($bits::from(read.data.ok_or(LtError::Misc)?));
+                self.registers.[<$addr:lower>].set_val_0($bits::from_u32(read.data.ok_or(LtError::Misc)?));
                 Ok($regtype { value: self.registers.[<$addr:lower>].val_0() })
             }
         }
@@ -492,7 +492,7 @@ where
 		// DAC = Vout / (2.5 * 2^(-25 + 4))
 		// DAC = Vout * (2^21 / 2.5)
 		const FACTOR: f32 = 2_u32.pow(21) as f32 / 2.5;
-		let dac_target = i25::from((target * FACTOR) as i32);
+		let dac_target = i25::new((target * FACTOR) as i32);
 
 		self.set_dac(dac_target)
 	}
@@ -504,7 +504,7 @@ where
 			return Ok(());
 		};
 
-		let dac_sign = i25::from(dac_diff.as_i32() / dac_diff.as_i32().abs());
+		let dac_sign = i25::new(dac_diff.as_i32() / dac_diff.as_i32().abs());
 		while dac_diff * dac_sign > DAC_RAMP_STEP {
 			write_reg!(
 				self,
