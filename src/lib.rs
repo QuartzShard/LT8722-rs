@@ -182,7 +182,7 @@ pub enum SpiPacket {
 }
 
 #[bitsize(8)]
-#[derive(FromBits)]
+#[derive(FromBits, Debug, defmt::Format)]
 pub enum SpiAck {
 	Stuck0        = 0x00,
 	RejectBadAddr = 0x0F,
@@ -349,6 +349,7 @@ pub struct AMux {
 	aout_en:   bool,
 }
 
+#[derive(Debug, defmt::Format)]
 pub enum LtError<SpiError, ENError, SWENError> {
 	Spi(SpiError),
 	EN(ENError),
