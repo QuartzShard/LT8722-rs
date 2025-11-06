@@ -507,9 +507,7 @@ where
 			return Ok(());
 		};
 
-		let dac_sign = dac_diff.as_i32() / dac_diff.as_i32().abs();
-        defmt::debug!("Got sign? {}", dac_sign);
-        let dac_sign = i25::new(dac_sign);
+		let dac_sign = if dac_diff.is_negative() { i25::new(-1) } else { i25::new(1) };
 		while dac_diff * dac_sign > DAC_RAMP_STEP {
 			write_reg!(
 				self,
