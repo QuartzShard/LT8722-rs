@@ -143,9 +143,7 @@ impl Default for Registers {
 			dac_ilimp: DACILimP {
 				value: u9::new(0x0u16),
 			},
-			dac:       DAC {
-				value: 0xFF000000u32,
-			},
+			dac:       DAC::new(i25::MIN),
 			ov_clamp:  OVClamp {
 				value: u4::new(0xFu8),
 			},
@@ -324,22 +322,17 @@ pub struct DACILimN(u9);
 #[bitsize(9)]
 pub struct DACILimP(u9);
 
-#[bitsize(32)]
-pub struct DAC(i32);
+#[bitsize(25)]
+pub struct DAC(i25);
 
 impl DAC {
 	// Sets the value and sign-expands to 32bit
 	pub fn set(&mut self, val: i25) {
-		let sign = if val.is_negative() {
-			0xFF << 24
-		} else {
-			0x00 
-		};
-		self.set_val_0(sign & val.as_i32());
+		self.set_val_0(val);
 	}
 
 	pub fn get(&self) -> i32 {
-        self.val_0()
+        self.val_0().value()
 	}
 }
 #[bitsize(4)]
@@ -520,8 +513,9 @@ where
 			write_reg!(
 				self,
 				DAC,
-				dac.set(i25::new(
-                    (self.registers.dac.get() + DAC_RAMP_STEP.as_i32() * dac_sign) & 0x1FFFFFF
+				dac.set(i25::extract_i32(
+                    (self.registers.dac.get() + DAC_RAMP_STEP.as_i32() * dac_sign) << 7,
+                    7
                 ))
 			);
 			dac_diff -= DAC_RAMP_STEP.as_i32() * dac_sign;
