@@ -299,7 +299,7 @@ pub struct Status {
 
 impl defmt::Format for Status {
     fn format(&self, fmt: defmt::Formatter) {
-        defmt::write!(fmt, "{:?}", self.value.as_u16())
+        defmt::write!(fmt, "{:#X}", self.value.as_u16())
     }
 }  
 
