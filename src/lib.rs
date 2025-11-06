@@ -508,6 +508,7 @@ where
 		};
 
 		let dac_sign = if dac_diff.is_negative() { i25::new(-1) } else { i25::new(1) };
+        defmt::debug!("Got sign: {}", dac_sign);
 		while dac_diff * dac_sign > DAC_RAMP_STEP {
 			write_reg!(
 				self,
