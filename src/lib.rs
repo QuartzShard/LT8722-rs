@@ -478,11 +478,13 @@ where
 		write_reg!(self, Command, command.set_enable_req(true));
 
 		let dac: i25 = i25::MIN;
+        defmt::debug!("Set DAC Startpoint");
 		write_reg!(self, DAC, dac.set(dac));
 		write_reg!(self, Status, status.clear());
 		self.delay.delay_ms(1);
 
 		// Ramp up to 0 over >= 5ms
+        defmt::debug!("Ramp DAC");
 		self.set_dac(i25::ZERO)?;
 
 		self.switch_enable.set_high().map_err(LtError::from_swen)?;
