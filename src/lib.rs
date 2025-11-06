@@ -526,6 +526,7 @@ where
 			dac_diff -= DAC_RAMP_STEP * dac_sign;
 			self.delay.delay_us(DAC_STEP_DUR_US);
 		}
+
 		write_reg!(self, DAC, dac.set(target));
 
 		Ok(())
