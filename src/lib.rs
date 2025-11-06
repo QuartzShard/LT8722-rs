@@ -143,7 +143,7 @@ impl Default for Registers {
 			dac_ilimp: DACILimP {
 				value: u9::new(0x0u16),
 			},
-			dac:       DAC::new(i25::MIN),
+			dac:       DAC::new(i25::MIN.value()),
 			ov_clamp:  OVClamp {
 				value: u4::new(0xFu8),
 			},
@@ -322,17 +322,17 @@ pub struct DACILimN(u9);
 #[bitsize(9)]
 pub struct DACILimP(u9);
 
-#[bitsize(25)]
-pub struct DAC(i25);
+#[bitsize(32)]
+pub struct DAC(i32);
 
 impl DAC {
 	// Sets the value and sign-expands to 32bit
 	pub fn set(&mut self, val: i25) {
-		self.set_val_0(val);
+		self.set_val_0(val.value());
 	}
 
-	pub fn get(&self) -> i32 {
-        self.val_0().value()
+	pub fn get(&self) -> i25 {
+        i25::from_bits((self.val_0() & i25::MASK) as u32) 
 	}
 }
 #[bitsize(4)]
@@ -502,23 +502,24 @@ where
 
 	// Sets the SPIS_DAC value, ramping if larger than the defined DAC_RAMP_STEP
 	pub fn set_dac(&mut self, target: i25) -> Result<(), <Self as Er>::Error> {
-		let mut dac_diff = self.registers.dac.get() - target.as_i32();
-		if dac_diff == 0 {
+		let mut dac_diff = self.registers.dac.get() - target;
+		if dac_diff == i25::ZERO {
 			return Ok(());
 		};
 
-		let dac_sign = dac_diff / dac_diff.abs();
+		let dac_sign = dac_diff.as_i32() / dac_diff.as_i32().abs();
         defmt::debug!("Got sign? {}", dac_sign);
-		while dac_diff * dac_sign > DAC_RAMP_STEP.as_i32() {
+        let dac_sign = i25::new(dac_sign);
+		while dac_diff * dac_sign > DAC_RAMP_STEP {
 			write_reg!(
 				self,
 				DAC,
-				dac.set(i25::extract_i32(
-                    (self.registers.dac.get() + DAC_RAMP_STEP.as_i32() * dac_sign) << 7,
-                    7
-                ))
+				dac.set(
+                    self.registers.dac.get() + DAC_RAMP_STEP * dac_sign,
+                    
+                )
 			);
-			dac_diff -= DAC_RAMP_STEP.as_i32() * dac_sign;
+			dac_diff -= DAC_RAMP_STEP * dac_sign;
 			self.delay.delay_us(DAC_STEP_DUR_US);
 		}
 
