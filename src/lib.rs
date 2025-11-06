@@ -553,7 +553,7 @@ where
 				buf[0] = 0xF2;
 				buf[1] = addr as u8;
 				buf[2..6].copy_from_slice(&data.to_be_bytes());
-				buf[6] = Self::CRC.checksum(&buf[0..7]);
+				buf[6] = Self::CRC.checksum(&buf[0..6]);
 				&mut buf[..]
 			}
 		};
