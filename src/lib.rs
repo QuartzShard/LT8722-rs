@@ -335,7 +335,7 @@ impl DAC {
 		} else {
 			0x00 
 		};
-		self.set_val_0(sign & val.as_i32());
+		self.set_val_0(val.as_i32());
 	}
 
 	pub fn get(&self) -> i25 {
