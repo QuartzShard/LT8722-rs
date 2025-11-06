@@ -335,11 +335,11 @@ impl DAC {
 		} else {
 			0x00 
 		};
-		self.set_val_0(val.as_i32());
+		self.set_val_0(sign & val.as_i32());
 	}
 
-	pub fn get(&self) -> i25 {
-		i25::from_i32(0x1FFFFFF & self.val_0())
+	pub fn get(&self) -> i32 {
+        self.val_0()
 	}
 }
 #[bitsize(4)]
@@ -509,21 +509,22 @@ where
 
 	// Sets the SPIS_DAC value, ramping if larger than the defined DAC_RAMP_STEP
 	pub fn set_dac(&mut self, target: i25) -> Result<(), <Self as Er>::Error> {
-		let mut dac_diff = self.registers.dac.get() - target;
-		if dac_diff.as_i32() == 0 {
+		let mut dac_diff = self.registers.dac.get() - target.as_i32();
+		if dac_diff == 0 {
 			return Ok(());
 		};
 
-		let dac_sign = dac_diff.as_i32() / dac_diff.as_i32().abs();
+		let dac_sign = dac_diff / dac_diff.abs();
         defmt::debug!("Got sign? {}", dac_sign);
-        let dac_sign = i25::from_i32(dac_sign);
-		while dac_diff * dac_sign > DAC_RAMP_STEP {
+		while dac_diff * dac_sign > DAC_RAMP_STEP.as_i32() {
 			write_reg!(
 				self,
 				DAC,
-				dac.set(self.registers.dac.get() + DAC_RAMP_STEP * dac_sign)
+				dac.set(i25::new(
+                    (self.registers.dac.get() + DAC_RAMP_STEP.as_i32() * dac_sign) & 0x1FFFFFF
+                ))
 			);
-			dac_diff -= DAC_RAMP_STEP * dac_sign;
+			dac_diff -= DAC_RAMP_STEP.as_i32() * dac_sign;
 			self.delay.delay_us(DAC_STEP_DUR_US);
 		}
 
