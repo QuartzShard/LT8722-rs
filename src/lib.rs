@@ -510,12 +510,12 @@ where
 		let dac_sign = if dac_diff.is_negative() { i25::new(-1) } else { i25::new(1) };
         defmt::debug!("Got sign: {}", dac_sign.value());
 		while dac_diff * dac_sign > DAC_RAMP_STEP {
+            defmt::debug!("canary {}", dac_diff.value());
 			write_reg!(
 				self,
 				DAC,
 				dac.set(
                     self.registers.dac.get() + DAC_RAMP_STEP * dac_sign,
-                    
                 )
 			);
 			dac_diff -= DAC_RAMP_STEP * dac_sign;
