@@ -282,7 +282,7 @@ pub enum PwrLim {
 }
 
 #[bitsize(11)]
-#[derive(FromBits, DebugBits)]
+#[derive(FromBits, DebugBits, Clone, Copy)]
 pub struct Status {
 	swen:         bool,
 	srvo_ilim:    bool,
@@ -526,6 +526,11 @@ where
 
 		Ok(())
 	}
+
+    pub fn clear_status(&mut self) -> Result<Status, <Self as Er>::Error> {
+        write_reg!(self, Status, status.clear());
+        Ok(self.registers.status)
+    }
 
 	/// Perform an SPI transaction with the driver. Handles Opcodes/Addressing/CRC/Ack
 	fn spi_transaction(&mut self, packet: SpiPacket) -> Result<SpiResponse, <Self as Er>::Error> {
