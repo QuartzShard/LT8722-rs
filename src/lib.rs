@@ -193,6 +193,7 @@ pub enum SpiAck {
 	Corrupt,
 }
 
+#[derive(Debug, defmt::Format)]
 pub struct SpiResponse {
 	status: Status,
 	data:   Option<u32>,
@@ -281,7 +282,7 @@ pub enum PwrLim {
 }
 
 #[bitsize(11)]
-#[derive(FromBits)]
+#[derive(FromBits, DebugBits)]
 pub struct Status {
 	swen:         bool,
 	srvo_ilim:    bool,
@@ -295,6 +296,12 @@ pub struct Status {
 	cp_uvlo:      bool,
 	vp25_uvlo:    bool,
 }
+
+impl defmt::Format for Status {
+    fn format(&self, fmt: defmt::Formatter) {
+        defmt::write!(fmt, "{:?}", self.value.as_u16())
+    }
+}  
 
 impl Status {
 	pub fn clear(&mut self) {
@@ -469,6 +476,7 @@ where
 	pub fn soft_start(&mut self) -> Result<(), <Self as Er>::Error> {
 		self.enable.set_high().map_err(LtError::from_en)?;
 		write_reg!(self, Command, command.set_enable_req(true));
+
 		let dac: i25 = i25::MIN;
 		write_reg!(self, DAC, dac.set(dac));
 		write_reg!(self, Status, status.clear());
@@ -589,6 +597,7 @@ where
 		if let SpiAck::Ack = ack {
 			Ok(resp)
 		} else {
+            defmt::error!("Response: {:?}", resp);
 			Err(LtError::NAK(ack))
 		}
 	}
