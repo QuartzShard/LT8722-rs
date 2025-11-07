@@ -1,4 +1,4 @@
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 
 use core::{array::TryFromSliceError, convert::Infallible};
 
@@ -6,9 +6,11 @@ use bilge::prelude::*;
 use embedded_hal::{delay::DelayNs, digital::{ErrorType, OutputPin}, spi::SpiDevice};
 use paste::paste;
 
+mod macros;
 mod seal {
     pub(super) trait Sealed {}
 }
+
 
 #[allow(private_bounds)]
 pub trait OptionalPin: seal::Sealed {}
@@ -60,74 +62,6 @@ pub struct Registers {
 	amux:      AMux,
 }
 
-/// Writes a value to a register via SPI transaction and updates the status register.
-///
-/// This macro sets a register field value, performs an SPI write transaction,
-/// and updates `self.registers.status` with the result.
-///
-/// # Arguments
-/// * `$addr` - The `RegAddr` enum variant for the register address
-/// * `$reg` - The register field name in `self.registers`
-/// * `$method` - The setter method to call on the register
-/// * `$args` - Arguments to pass to the setter method
-///
-/// # Example
-/// ```
-/// write_reg!(Command, command.set_enable_req(true));
-/// write_reg!(DAC, dac.set_val_0(0xFF000000));
-/// ```
-macro_rules! write_reg {
-    ($self:expr, $addr:ident, $reg:ident . $method:ident ( $($args:expr),* $(,)? )) => {{
-        $self.registers.$reg.$method($($args),*);
-        $self.registers.status = $self.spi_transaction(SpiPacket::DataWrite {
-            addr: RegAddr::$addr,
-            data: $self.registers.$reg.value.into(),
-        })?.status;
-    }};
-}
-
-macro_rules! impl_reg_field_access {
-    {$name: ident, $regtype: ty, $addr: ident, $bits: ty} => {
-        paste! {
-            pub fn [<set_$name>](&mut self, $name: $regtype) -> Result<(), <Self as Er>::Error> {
-                write_reg!(self, $addr, [<$addr:lower>].[<set_$name>]($name));
-                Ok(())
-            }
-
-            pub fn [<get_$name>](&mut self) -> Result<$regtype, <Self as Er>::Error> {
-                let read = self.spi_transaction(SpiPacket::DataRead {
-                    addr: RegAddr::$addr,
-                })?;
-                self.registers.status = read.status;
-                let _ = core::mem::replace(&mut self.registers.[<$addr:lower>], $addr::from($bits::from_u32(read.data.ok_or(LtError::Misc)?)));
-                Ok(self.registers.[<$addr:lower>].$name())
-            }
-        }
-    };
-    {($($name: ident, $regtype: ty),+), $addr: ident, $bits: ty} => {
-        $(impl_reg_field_access!{$name, $regtype, $addr, $bits})+
-    }
-}
-
-macro_rules! impl_reg_access {
-    {$addr: ident, $regtype: ty, $bits: ty} => {
-        paste! {
-            pub fn [<set_$addr:lower>](&mut self, [<$addr:lower>]: $regtype) -> Result<(), <Self as Er>::Error> {
-                write_reg!(self, $addr, [<$addr:lower>].set_val_0([<$addr:lower>].val_0()));
-                Ok(())
-            }
-
-            pub fn [<get_$addr:lower>](&mut self) -> Result<$regtype, <Self as Er>::Error> {
-                let read = self.spi_transaction(SpiPacket::DataRead {
-                    addr: RegAddr::$addr,
-                })?;
-                self.registers.status = read.status;
-                self.registers.[<$addr:lower>].set_val_0($bits::from_u32(read.data.ok_or(LtError::Misc)?));
-                Ok($regtype { value: self.registers.[<$addr:lower>].val_0() })
-            }
-        }
-    };
-}
 impl Default for Registers {
 	fn default() -> Self {
 		Self {
@@ -471,13 +405,11 @@ where
 		write_reg!(self, Command, command.set_enable_req(true));
 
 		let dac: i25 = i25::MIN;
-        defmt::debug!("Set DAC Startpoint");
 		write_reg!(self, DAC, dac.set(dac));
 		write_reg!(self, Status, status.clear());
 		self.delay.delay_ms(1);
 
 		// Ramp up to 0 over >= 5ms
-        defmt::debug!("Ramp DAC");
 		self.set_dac(i25::ZERO)?;
 
 		self.switch_enable.set_high().map_err(LtError::from_swen)?;
@@ -508,14 +440,16 @@ where
 		};
 
 		let dac_sign = if dac_diff.is_negative() { i25::new(-1) } else { i25::new(1) };
-        defmt::debug!("Got sign: {}", dac_sign.value());
 		while dac_diff.value() * dac_sign.value() > DAC_RAMP_STEP.value() {
-            defmt::debug!("canary {}", dac_diff.value());
+            #[cfg(test)]
+            {
+                println!("Ramp: {:#08X} -= {1:#08X} ({1})", self.registers.dac.get(), DAC_RAMP_STEP * dac_sign);
+            }
 			write_reg!(
 				self,
 				DAC,
 				dac.set(
-                    self.registers.dac.get() + DAC_RAMP_STEP * dac_sign,
+                    self.registers.dac.get() - DAC_RAMP_STEP * dac_sign,
                 )
 			);
 			dac_diff -= DAC_RAMP_STEP * dac_sign;
@@ -602,8 +536,86 @@ where
 		if let SpiAck::Ack = ack {
 			Ok(resp)
 		} else {
-            defmt::error!("Response: {:?}", resp);
 			Err(LtError::NAK(ack))
 		}
 	}
+
+    /// Free the resources used by this perioheral
+    pub fn free(self) -> (SPI, SYNC, EN, SWEN, D) {
+        (self.spi, self._sync_pin, self.enable, self.switch_enable, self.delay)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use embedded_hal_mock::eh1::{spi, delay};
+	const CRC: crc::Crc<u8> = crc::Crc::<u8>::new(&crc::CRC_8_SMBUS);
+
+    #[test]
+    fn soft_start() {
+
+        let mut expectations = vec![
+            spi::Transaction::transaction_start(),
+            spi::Transaction::transfer_in_place(
+                vec![0xF2, 0x00, 0x00, 0x08, 0xA2, 0x15, 0x65, 0x00], 
+                vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA5]
+            ),
+            spi::Transaction::transaction_end(),
+            spi::Transaction::transaction_start(),
+            spi::Transaction::transfer_in_place(
+                vec![0xF2, 0x04, 0xFF, 0x00, 0x00, 0x00, 0x33, 0x00], 
+                vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA5]
+            ),
+            spi::Transaction::transaction_end(),
+            spi::Transaction::transaction_start(),
+            spi::Transaction::transfer_in_place(
+                vec![0xF2, 0x01, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x00], 
+                vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA5]
+            ),
+            spi::Transaction::transaction_end(),
+        ];
+
+        let mut dac = i25::MIN;
+        for _ in 0..DAC_STEPS {
+            dac = dac.saturating_add(DAC_RAMP_STEP);
+            let mut packet: Vec<u8> = vec![0xF2, 0x04];
+            packet.append(&mut dac.value().to_be_bytes().to_vec()); 
+            packet.append(&mut vec![CRC.checksum(&packet[..]), 0x00]);
+            expectations.append(&mut vec![
+                spi::Transaction::transaction_start(),
+                spi::Transaction::transfer_in_place(
+                    packet,
+                    vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA5]
+                ),
+                spi::Transaction::transaction_end(),
+            ]); 
+        }
+
+        expectations.append(&mut vec![
+            spi::Transaction::transaction_start(),
+            spi::Transaction::transfer_in_place(
+                vec![0xF2, 0x04, 0x00, 0x00, 0x00, 0x00, 0xE2, 0x00], 
+                vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA5]
+            ),
+            spi::Transaction::transaction_end(),
+            spi::Transaction::transaction_start(),
+            spi::Transaction::transfer_in_place(
+                vec![0xF2, 0x00, 0x00, 0x08, 0xA2, 0x17, 0x6B, 0x00], 
+                vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA5]
+            ),
+            spi::Transaction::transaction_end(),
+        ]);
+
+        let spi_mock = spi::Mock::new(&expectations);
+
+        let mut lt = LT8722::new(spi_mock, NoPin {}, NoPin {}, NoPin {}, delay::NoopDelay)
+            .expect("Failed to construct")
+        ;
+
+        lt.soft_start().expect("Failed to soft start");
+
+        let (mut spi_mock, ..) = lt.free();
+        spi_mock.done()
+    }
 }
