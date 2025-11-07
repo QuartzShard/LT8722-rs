@@ -461,12 +461,13 @@ where
 		Ok(())
 	}
 
-    pub fn get_status(&self) -> Status {
-        self.registers.status
+    pub fn get_status(&mut self) -> Result<Status, <Self as Er>::Error> {
+        self.spi_transaction(SpiPacket::Status { addr: RegAddr::Status }).map(|r| r.status)
     }
 
     pub fn clear_status(&mut self) -> Result<Status, <Self as Er>::Error> {
         write_reg!(self, Status, status.clear());
+        self.delay.delay_ms(1);
         Ok(self.registers.status)
     }
 
@@ -552,8 +553,17 @@ where
     pub fn view_regs(&self) -> &Registers {
         &self.registers
     }
-}
 
+    /// WARNING: Does not keep internal state coherent, use macro instead
+    pub fn write_register(&mut self, addr: RegAddr, data: u32) -> Result<SpiResponse, <Self as Er>::Error> {
+       self.spi_transaction(SpiPacket::DataWrite { addr, data }) 
+    } 
+
+    pub fn read_register(&mut self, addr: RegAddr) -> Result<SpiResponse, <Self as Er>::Error> {
+       self.spi_transaction(SpiPacket::DataRead { addr }) 
+    } 
+    
+}
 #[cfg(test)]
 mod test {
     use super::*;
