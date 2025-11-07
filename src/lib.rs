@@ -461,6 +461,10 @@ where
 		Ok(())
 	}
 
+    pub fn get_status(&self) -> Status {
+        self.registers.status
+    }
+
     pub fn clear_status(&mut self) -> Result<Status, <Self as Er>::Error> {
         write_reg!(self, Status, status.clear());
         Ok(self.registers.status)
@@ -543,6 +547,10 @@ where
     /// Free the resources used by this perioheral
     pub fn free(self) -> (SPI, SYNC, EN, SWEN, D) {
         (self.spi, self._sync_pin, self.enable, self.switch_enable, self.delay)
+    }
+
+    pub fn view_regs(&self) -> &Registers {
+        &self.registers
     }
 }
 
