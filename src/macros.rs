@@ -12,11 +12,14 @@
 /// # Example
 /// write_reg!(Command, command.set_enable_req(true));
 /// write_reg!(DAC, dac.set_val_0(0xFF000000));
-/// 
+///
 #[macro_export]
 macro_rules! write_reg {
-    ($self:expr, $addr:ident, $reg:ident . $method:ident ( $($args:expr),* $(,)? )) => {{
+    ($self:expr, $addr:ident, $reg:ident . $method:ident ( $($args:expr),* $(,)? )) => {
         $self.registers.$reg.$method($($args),*);
+        write_reg!($self, $addr, $reg);
+    };
+    ($self:expr, $addr:ident, $reg:ident) => {{
         $self.registers.status = $self.spi_transaction(SpiPacket::DataWrite {
             addr: RegAddr::$addr,
             data: $self.registers.$reg.value.into(),
