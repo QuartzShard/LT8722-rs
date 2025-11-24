@@ -136,17 +136,17 @@ pub struct SpiResponse {
 #[bitsize(22)]
 #[derive(FromBits)]
 pub struct Command {
-	enable_req:  bool,
-	swen_req:    bool,
-	sw_freq_set: PwmFreqCtrl,
-	sw_freq_adj: PwmFreqAdj,
-	sys_dc:      SysDc,
-	vcc_vreg:    VccVreg,
-	reserved:    u1, // MUST BE 0
-	sw_vc_int:   VcInt,
-	spi_rst:     bool,
-	pwr_lim:     PwrLim,
-	reserved:    u3,
+	pub enable_req:  bool,
+	pub swen_req:    bool,
+	pub sw_freq_set: PwmFreqCtrl,
+	pub sw_freq_adj: PwmFreqAdj,
+	pub sys_dc:      SysDc,
+	pub vcc_vreg:    VccVreg,
+	pub reserved:    u1, // MUST BE 0
+	pub sw_vc_int:   VcInt,
+	pub spi_rst:     bool,
+	pub pwr_lim:     PwrLim,
+	pub reserved:    u3,
 }
 
 #[bitsize(3)]
@@ -218,17 +218,17 @@ pub enum PwrLim {
 #[bitsize(11)]
 #[derive(FromBits, DebugBits, Clone, Copy)]
 pub struct Status {
-	swen:         bool,
-	srvo_ilim:    bool,
-	srvo_plim:    bool,
-	min_ot:       bool,
-	por_occ:      bool,
-	over_current: bool,
-	tsd:          bool,
-	vcc_uvlo:     bool,
-	vddio_uvlo:   bool,
-	cp_uvlo:      bool,
-	vp25_uvlo:    bool,
+	pub swen:         bool,
+	pub srvo_ilim:    bool,
+	pub srvo_plim:    bool,
+	pub min_ot:       bool,
+	pub por_occ:      bool,
+	pub over_current: bool,
+	pub tsd:          bool,
+	pub vcc_uvlo:     bool,
+	pub vddio_uvlo:   bool,
+	pub cp_uvlo:      bool,
+	pub vp25_uvlo:    bool,
 }
 
 impl defmt::Format for Status {
@@ -255,10 +255,10 @@ impl Status {
 
 #[bitsize(9)]
 #[derive(FromBits)]
-pub struct DACILimN(u9);
+pub struct DACILimN(pub u9);
 #[bitsize(9)]
 #[derive(FromBits)]
-pub struct DACILimP(u9);
+pub struct DACILimP(pub u9);
 
 #[bitsize(32)]
 pub struct DAC(i32);
@@ -275,18 +275,18 @@ impl DAC {
 }
 #[bitsize(4)]
 #[derive(FromBits)]
-pub struct OVClamp(u4);
+pub struct OVClamp(pub u4);
 #[bitsize(4)]
 #[derive(FromBits)]
-pub struct UVClamp(u4);
+pub struct UVClamp(pub u4);
 
 #[bitsize(7)]
 #[derive(FromBits)]
 /// See table on datasheet page 26 for options
 pub struct AMux {
-	amux:      u4,
-	amux_test: u2,
-	aout_en:   bool,
+	pub amux:      u4,
+	pub amux_test: u2,
+	pub aout_en:   bool,
 }
 
 #[derive(Debug, defmt::Format)]
