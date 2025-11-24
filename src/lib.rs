@@ -528,10 +528,14 @@ where
 				&mut buf[..]
 			}
 		};
-
+        
+        #[cfg(debug_assertions)]
+        defmt::debug!("{:#04X}", xfer);
 		self.spi
 			.transfer_in_place(xfer)
 			.map_err(LtError::from_spi)?;
+        #[cfg(debug_assertions)]
+        defmt::debug!("{:#04X}", xfer);
 
 		let (crc_match, ack, resp) = match packet {
 			SpiPacket::Status { .. } => {
