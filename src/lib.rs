@@ -510,19 +510,19 @@ where
 		let xfer = match packet {
 			SpiPacket::Status { addr } => {
 				buf[0] = 0xF0;
-				buf[1] = addr as u8;
+				buf[1] = (addr as u8) << 1 & 0xFE;
 				buf[2] = Self::CRC.checksum(&buf[0..2]);
 				&mut buf[0..4]
 			}
 			SpiPacket::DataRead { addr } => {
 				buf[0] = 0xF4;
-				buf[1] = addr as u8;
+				buf[1] = (addr as u8) << 1 & 0xFE;
 				buf[2] = Self::CRC.checksum(&buf[0..2]);
 				&mut buf[..]
 			}
 			SpiPacket::DataWrite { addr, data } => {
 				buf[0] = 0xF2;
-				buf[1] = addr as u8;
+				buf[1] = (addr as u8) << 1 & 0xFE;
 				buf[2..6].copy_from_slice(&data.to_be_bytes());
 				buf[6] = Self::CRC.checksum(&buf[0..6]);
 				&mut buf[..]
