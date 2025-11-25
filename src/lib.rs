@@ -455,14 +455,17 @@ where
 		self.set_dac(dac_target)
 	}
 
-    // Sets the positive and negative current limits. Clamped to the ranges specified by the
-    // datasheet: ilimp 0-462 and ilimn 48-511.
-    pub fn set_current_limit(&mut self, low: f32, high: f32) -> Result<(), <Self as Er>::Error> {
+    /// Sets the positive and negative current limits. Clamped to the ranges specified by the
+    /// datasheet: ilimp 0-462 and ilimn 48-511.
+    /// Returns the clamped current limits
+    pub fn set_current_limit(&mut self, low: f32, high: f32) -> Result<(f32, f32), <Self as Er>::Error> {
         let ilimp = u9::new(((6.8 - high) / 0.01328).clamp(0.0, 462.0) as u16);  
         let ilimn = u9::new((low / -0.01328).clamp(48.0, 511.0) as u16);  
         self.set_dac_ilimp(DACILimP::new(ilimp))?;
         self.set_dac_ilimn(DACILimN::new(ilimn))?;
-        Ok(())
+        let ilimp = 6.8 - 0.01328 * ilimp.value() as f32;
+        let ilimn = ilimn.value() as f32 * -0.01328;
+        Ok((ilimn, ilimp))
     }
 
 	// Sets the SPIS_DAC value, ramping if larger than the defined DAC_RAMP_STEP
