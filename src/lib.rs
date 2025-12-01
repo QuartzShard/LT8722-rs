@@ -413,32 +413,32 @@ where
 
 		self.registers.command = Command::from(u22::new(0x00004000));
 		write_reg!(self, Command, command);
-		self.delay.delay_us(100);
+		// self.delay.delay_us(100);
 		self.registers.command = Command::from(u22::new(0x0000120D));
 		write_reg!(self, Command, command);
-		self.delay.delay_us(100);
+		// self.delay.delay_us(100);
 
 		self.registers.status = Status::from(u11::ZERO);
 		write_reg!(self, Status, status);
-		self.delay.delay_us(100);
+		// self.delay.delay_us(100);
 		write_reg!(self, Command, command);
-		self.delay.delay_us(100);
+		// self.delay.delay_us(100);
 
 		let dac: i25 = i25::MIN;
 		write_reg!(self, DAC, dac.set(dac));
-		self.delay.delay_us(100);
+		// self.delay.delay_us(100);
 
 		// Ramp up to 0 over >= 5ms
 		self.set_dac(i25::ZERO)?;
 
 		self.registers.status = Status::from(u11::ZERO);
 		write_reg!(self, Status, status);
-		self.delay.delay_us(100);
+		// self.delay.delay_us(100);
 
 		self.switch_enable.set_high().map_err(LtError::from_swen)?;
 		write_reg!(self, Command, command.set_swen_req(true));
 
-		self.delay.delay_us(160);
+		// self.delay.delay_us(160);
 		Ok(())
 	}
 
@@ -495,7 +495,8 @@ where
 				dac.set(self.registers.dac.get() - DAC_RAMP_STEP * dac_sign,)
 			);
 			dac_diff -= DAC_RAMP_STEP * dac_sign;
-			self.delay.delay_us(DAC_STEP_DUR_US);
+            // hope and pray
+			//self.delay.delay_us(DAC_STEP_DUR_US);
 		}
 
 		write_reg!(self, DAC, dac.set(target));
