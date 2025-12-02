@@ -464,10 +464,6 @@ where
 	// Sets the SPIS_DAC value, ramping if larger than the defined DAC_RAMP_STEP
 	pub async fn set_dac(&mut self, target: i25) -> Result<(), <Self as Er>::Error> {
 		let mut dac_diff = self.registers.dac.get() - target;
-		if dac_diff == i25::ZERO {
-			return Ok(());
-		};
-
 		let dac_sign = if dac_diff.is_negative() {
 			i25::new(-1)
 		} else {
