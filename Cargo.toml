@@ -8,7 +8,9 @@ bilge = "0.3.0"
 crc = "3.3.0"
 defmt = "1.0.1"
 embedded-hal = "1.0.0"
+fugit = "0.3.9"
 paste = "1.0.15"
+rtic-time = "2.0.1"
 
 [dev-dependencies]
 embedded-hal-mock = "0.11.1"
