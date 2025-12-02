@@ -411,34 +411,22 @@ where
 	/// datasheet~~ as per the linudino example
 	pub async fn soft_start(&mut self) -> Result<(), <Self as Er>::Error> {
 		self.enable.set_high().map_err(LtError::from_en)?;
-
-		self.registers.command = Command::from(u22::new(0x00004000));
-		write_reg!(self, Command, command);
-		D::delay(100_u64.micros()).await;
-		self.registers.command = Command::from(u22::new(0x0000120D));
-		write_reg!(self, Command, command);
-		D::delay(100_u64.micros()).await;
-
-		self.registers.status = Status::from(u11::ZERO);
-		write_reg!(self, Status, status);
-		D::delay(100_u64.micros()).await;
-		write_reg!(self, Command, command);
+        write_reg!(self, Command, command.set_enable_req(true));
 		D::delay(100_u64.micros()).await;
 
 		let dac: i25 = i25::MIN;
 		write_reg!(self, DAC, dac.set(dac));
 		D::delay(100_u64.micros()).await;
 
+		self.registers.status = Status::from(u11::ZERO);
+		write_reg!(self, Status, status);
+        D::delay(1.millis()).await;
+
 		// Ramp up to 0 over >= 5ms
 		self.set_dac(i25::ZERO).await?;
 
-		self.registers.status = Status::from(u11::ZERO);
-		write_reg!(self, Status, status);
-		D::delay(100_u64.micros()).await;
-
 		self.switch_enable.set_high().map_err(LtError::from_swen)?;
 		write_reg!(self, Command, command.set_swen_req(true));
-
 		D::delay(160_u64.micros()).await;
 		Ok(())
 	}
