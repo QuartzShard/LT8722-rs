@@ -407,9 +407,17 @@ where
 		Ok(driver)
 	}
 
+    pub fn reset(&mut self) -> Result<(), <Self as Er>::Error>{
+        write_reg!(self, Command, command.set_spi_rst(true));
+        self.registers = Registers::default();
+        self.registers.status = self.get_status()?;
+        Ok(())
+    }
+
 	/// Start the device in a manner that prevents large inrush current, ~~as per pg12-13 on the
 	/// datasheet~~ as per the linudino example
 	pub async fn soft_start(&mut self) -> Result<(), <Self as Er>::Error> {
+        self.reset()?;
 		self.enable.set_high().map_err(LtError::from_en)?;
         write_reg!(self, Command, command.set_enable_req(true));
 		D::delay(100_u64.micros()).await;
@@ -473,9 +481,19 @@ where
 			#[cfg(test)]
 			{
 				println!(
-					"Ramp: {:#08X} -= {1:#08X} ({1})",
+					"Ramp: {:#08X} -= {1:#08X} ({1})\nRemaining: {2:#08X}",
 					self.registers.dac.get(),
-					DAC_RAMP_STEP * dac_sign
+					DAC_RAMP_STEP * dac_sign,
+                    dac_diff.value()
+				);
+			}
+			#[cfg(debug_assertions)]
+			{
+				defmt::debug!(
+					"Ramp: {:#08X} -= {1:#08X} ({1})\nRemaining: {2:#08X}",
+					self.registers.dac.get(),
+					DAC_RAMP_STEP * dac_sign,
+                    dac_diff.value()
 				);
 			}
 			write_reg!(
