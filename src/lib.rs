@@ -415,7 +415,7 @@ where
     }
 
 	/// Start the device in a manner that prevents large inrush current, ~~as per pg12-13 on the
-	/// datasheet~~ as per the linudino example
+	/// datasheet~~ as per the linudino example. Issues a sofware reset
 	pub async fn soft_start(&mut self) -> Result<(), <Self as Er>::Error> {
         self.reset()?;
 		self.enable.set_high().map_err(LtError::from_en)?;
@@ -447,7 +447,10 @@ where
 		// DAC = Vout / (2.5 * 2^(-25 + 4))
 		// DAC = Vout * (2^21 / 2.5)
 		const FACTOR: f32 = 2_u32.pow(21) as f32 / 2.5;
-		let dac_target = i25::new((target * FACTOR) as i32);
+        let target = (target * FACTOR).clamp(0xFF000000_u32 as i32 as f32 , 0x00FFFFFF_i32 as f32);
+        #[cfg(debug_assertions)]
+        defmt::debug!("DAC Target: {:?}", target);
+		let dac_target = i25::new(target as i32);
 
 		self.set_dac(dac_target).await
 	}
