@@ -44,34 +44,34 @@ where
 	SWEN: OptionalPin,
 	D: Monotonic<Duration = fugit::Duration<u64, 1, 32768>>,
 {
-	spi:           SPI,
-	_sync_pin:     SYNC,
-	enable:        EN,
+	spi: SPI,
+	_sync_pin: SYNC,
+	enable: EN,
 	switch_enable: SWEN,
-	_delay:         D,
-	transfer_buf:  [u8; 8],
+	_delay: D,
+	transfer_buf: [u8; 8],
 	// Keep track of what's going on on the device
-	registers:     Registers,
+	registers: Registers,
 }
 
 pub struct Registers {
-	command:   Command,
-	status:    Status,
+	command: Command,
+	status: Status,
 	dac_ilimn: DACILimN,
 	dac_ilimp: DACILimP,
-	dac:       DAC,
-	ov_clamp:  OVClamp,
-	uv_clamp:  UVClamp,
-	amux:      AMux,
+	dac: DAC,
+	ov_clamp: OVClamp,
+	uv_clamp: UVClamp,
+	amux: AMux,
 }
 
 impl Default for Registers {
 	fn default() -> Self {
 		Self {
-			command:   Command {
+			command: Command {
 				value: u22::new(0x08A214u32),
 			},
-			status:    Status {
+			status: Status {
 				value: u11::new(0x0u16),
 			},
 			dac_ilimn: DACILimN {
@@ -80,14 +80,14 @@ impl Default for Registers {
 			dac_ilimp: DACILimP {
 				value: u9::new(0x0u16),
 			},
-			dac:       DAC::new(i25::MIN.value()),
-			ov_clamp:  OVClamp {
+			dac: DAC::new(i25::MIN.value()),
+			ov_clamp: OVClamp {
 				value: u4::new(0xFu8),
 			},
-			uv_clamp:  UVClamp {
+			uv_clamp: UVClamp {
 				value: u4::new(0x0u8),
 			},
-			amux:      AMux {
+			amux: AMux {
 				value: u7::new(0x0u8),
 			},
 		}
@@ -119,11 +119,11 @@ pub enum SpiPacket {
 #[bitsize(8)]
 #[derive(FromBits, Debug, defmt::Format)]
 pub enum SpiAck {
-	Stuck0        = 0x00,
+	Stuck0 = 0x00,
 	RejectBadAddr = 0x0F,
-	Ack           = 0xA5,
-	NACK          = 0xC3,
-	Stuck1        = 0xFF,
+	Ack = 0xA5,
+	NACK = 0xC3,
+	Stuck1 = 0xFF,
 	#[fallback]
 	Corrupt,
 }
@@ -131,23 +131,23 @@ pub enum SpiAck {
 #[derive(Debug, defmt::Format)]
 pub struct SpiResponse {
 	status: Status,
-	data:   Option<u32>,
+	data: Option<u32>,
 }
 
 #[bitsize(22)]
 #[derive(FromBits)]
 pub struct Command {
-	pub enable_req:  bool,
-	pub swen_req:    bool,
+	pub enable_req: bool,
+	pub swen_req: bool,
 	pub sw_freq_set: PwmFreqCtrl,
 	pub sw_freq_adj: PwmFreqAdj,
-	pub sys_dc:      SysDc,
-	pub vcc_vreg:    VccVreg,
-	pub reserved:    u1, // MUST BE 0
-	pub sw_vc_int:   VcInt,
-	pub spi_rst:     bool,
-	pub pwr_lim:     PwrLim,
-	pub reserved:    u3,
+	pub sys_dc: SysDc,
+	pub vcc_vreg: VccVreg,
+	pub reserved: u1, // MUST BE 0
+	pub sw_vc_int: VcInt,
+	pub spi_rst: bool,
+	pub pwr_lim: PwrLim,
+	pub reserved: u3,
 }
 
 #[bitsize(3)]
@@ -208,9 +208,9 @@ pub enum VcInt {
 #[bitsize(4)]
 #[derive(FromBits)]
 pub enum PwrLim {
-	_2W   = 0x0,
-	None  = 0x5,
-	_3W   = 0xA,
+	_2W = 0x0,
+	None = 0x5,
+	_3W = 0xA,
 	_3_5W = 0xF,
 	#[fallback]
 	Invalid,
@@ -219,17 +219,17 @@ pub enum PwrLim {
 #[bitsize(11)]
 #[derive(FromBits, DebugBits, Clone, Copy)]
 pub struct Status {
-	pub swen:         bool,
-	pub srvo_ilim:    bool,
-	pub srvo_plim:    bool,
-	pub min_ot:       bool,
-	pub por_occ:      bool,
+	pub swen: bool,
+	pub srvo_ilim: bool,
+	pub srvo_plim: bool,
+	pub min_ot: bool,
+	pub por_occ: bool,
 	pub over_current: bool,
-	pub tsd:          bool,
-	pub vcc_uvlo:     bool,
-	pub vddio_uvlo:   bool,
-	pub cp_uvlo:      bool,
-	pub vp25_uvlo:    bool,
+	pub tsd: bool,
+	pub vcc_uvlo: bool,
+	pub vddio_uvlo: bool,
+	pub cp_uvlo: bool,
+	pub vp25_uvlo: bool,
 }
 
 impl defmt::Format for Status {
@@ -285,9 +285,9 @@ pub struct UVClamp(pub u4);
 #[derive(FromBits)]
 /// See table on datasheet page 26 for options
 pub struct AMux {
-	pub amux:      u4,
+	pub amux: u4,
 	pub amux_test: u2,
-	pub aout_en:   bool,
+	pub aout_en: bool,
 }
 
 #[derive(Debug, defmt::Format)]
@@ -407,19 +407,19 @@ where
 		Ok(driver)
 	}
 
-    pub fn reset(&mut self) -> Result<(), <Self as Er>::Error>{
-        write_reg!(self, Command, command.set_spi_rst(true));
-        self.registers = Registers::default();
-        self.registers.status = self.get_status()?;
-        Ok(())
-    }
+	pub fn reset(&mut self) -> Result<(), <Self as Er>::Error> {
+		write_reg!(self, Command, command.set_spi_rst(true));
+		self.registers = Registers::default();
+		self.registers.status = self.get_status()?;
+		Ok(())
+	}
 
 	/// Start the device in a manner that prevents large inrush current, ~~as per pg12-13 on the
 	/// datasheet~~ as per the linudino example. Issues a sofware reset
 	pub async fn soft_start(&mut self) -> Result<(), <Self as Er>::Error> {
-        self.reset()?;
+		self.reset()?;
 		self.enable.set_high().map_err(LtError::from_en)?;
-        write_reg!(self, Command, command.set_enable_req(true));
+		write_reg!(self, Command, command.set_enable_req(true));
 		D::delay(100_u64.micros()).await;
 
 		let dac: i25 = i25::MIN;
@@ -428,7 +428,7 @@ where
 
 		self.registers.status = Status::from(u11::ZERO);
 		write_reg!(self, Status, status);
-        D::delay(1.millis()).await;
+		D::delay(1.millis()).await;
 
 		// Ramp up to 0 over >= 5ms
 		self.set_dac(i25::ZERO).await?;
@@ -447,9 +447,9 @@ where
 		// DAC = Vout / (2.5 * 2^(-25 + 4))
 		// DAC = Vout * (2^21 / 2.5)
 		const FACTOR: f32 = 2_u32.pow(21) as f32 / 2.5;
-        let target = (target * FACTOR).clamp(0xFF000000_u32 as i32 as f32 , 0x00FFFFFF_i32 as f32);
-        #[cfg(debug_assertions)]
-        defmt::debug!("DAC Target: {:?}", target);
+		let target = (target * FACTOR).clamp(0xFF000000_u32 as i32 as f32, 0x00FFFFFF_i32 as f32);
+		#[cfg(debug_assertions)]
+		defmt::trace!("DAC Target: {:?}", target);
 		let dac_target = i25::new(target as i32);
 
 		self.set_dac(dac_target).await
@@ -487,16 +487,16 @@ where
 					"Ramp: {:#08X} -= {1:#08X} ({1})\nRemaining: {2:#08X}",
 					self.registers.dac.get(),
 					DAC_RAMP_STEP * dac_sign,
-                    dac_diff.value()
+					dac_diff.value()
 				);
 			}
 			#[cfg(debug_assertions)]
 			{
-				defmt::debug!(
+				defmt::trace!(
 					"Ramp: {:#08X} -= {1:#08X} ({1})\nRemaining: {2:#08X}",
 					self.registers.dac.get(),
 					DAC_RAMP_STEP * dac_sign,
-                    dac_diff.value()
+					dac_diff.value()
 				);
 			}
 			write_reg!(
@@ -552,12 +552,12 @@ where
 		};
 
 		#[cfg(debug_assertions)]
-		defmt::debug!("{:#04X}", xfer);
+		defmt::trace!("{:#04X}", xfer);
 		self.spi
 			.transfer_in_place(xfer)
 			.map_err(LtError::from_spi)?;
 		#[cfg(debug_assertions)]
-		defmt::debug!("{:#04X}", xfer);
+		defmt::trace!("{:#04X}", xfer);
 
 		let (crc_match, ack, resp) = match packet {
 			SpiPacket::Status { .. } => {
@@ -566,7 +566,7 @@ where
 					status: Status::from(u11::from_u16(
 						((buf[0] as u16) << 8 | buf[1] as u16) & 0x07FF,
 					)),
-					data:   None,
+					data: None,
 				};
 				(crc == buf[2], SpiAck::from(buf[3]), resp)
 			}
@@ -576,7 +576,7 @@ where
 					status: Status::from(u11::from_u16(
 						((buf[0] as u16) << 8 | buf[1] as u16) & 0x07FF,
 					)),
-					data:   buf[2..6].try_into().ok().map(u32::from_be_bytes),
+					data: buf[2..6].try_into().ok().map(u32::from_be_bytes),
 				};
 				(crc == buf[6], SpiAck::from(buf[7]), resp)
 			}
@@ -586,7 +586,7 @@ where
 					status: Status::from(u11::from_u16(
 						((buf[0] as u16) << 8 | buf[1] as u16) & 0x07FF,
 					)),
-					data:   None,
+					data: None,
 				};
 				(crc == buf[2], SpiAck::from(buf[7]), resp)
 			}
@@ -605,12 +605,7 @@ where
 
 	/// Free the resources used by this perioheral
 	pub fn free(self) -> (SPI, SYNC, EN, SWEN) {
-		(
-			self.spi,
-			self._sync_pin,
-			self.enable,
-			self.switch_enable,
-		)
+		(self.spi, self._sync_pin, self.enable, self.switch_enable)
 	}
 
 	pub fn view_regs(&self) -> &Registers {
@@ -634,38 +629,38 @@ where
 // #[cfg(test)]
 // mod test {
 // 	use embedded_hal_mock::eh1::{delay, spi};
-// 
+//
 // 	use super::*;
 //     use std::sync::LazyLock;
-// 
+//
 // 	const CRC: crc::Crc<u8> = crc::Crc::<u8>::new(&crc::CRC_8_SMBUS);
-// 
+//
 //     static BASE: std::sync::LazyLock<std::time::Instant> = LazyLock::new(|| std::time::Instant::now());
 //     struct MockDelay;
-// 
+//
 //     impl Monotonic for MockDelay {
 //         type Instant = fugit::Instant<u64, 1, 32768>;
 //         type Duration = fugit::Duration<u64, 1, 32768>;
-// 
+//
 //         fn now() -> Self::Instant {
-//             fugit::Instant::<u64, 1, 32768>::from_ticks(0) + ((std::time::Instant::now() - *BASE).as_micros() as u64).micros()           
+//             fugit::Instant::<u64, 1, 32768>::from_ticks(0) + ((std::time::Instant::now() - *BASE).as_micros() as u64).micros()
 //         }
-// 
+//
 //         async fn delay(duration: Self::Duration) {
 //             todo!()
 //         }
-// 
+//
 //         async fn delay_until(instant: Self::Instant) {
 //             todo!()
 //         }
-// 
+//
 //         async fn timeout_at<F: core::future::Future>(
 //             instant: Self::Instant,
 //             future: F,
 //         ) -> Result<F::Output, rtic_time::TimeoutError> {
 //             todo!()
 //         }
-// 
+//
 //         async fn timeout_after<F: core::future::Future>(
 //             duration: Self::Duration,
 //             future: F,
@@ -673,7 +668,7 @@ where
 //             todo!()
 //         }
 //     }
-// 
+//
 // 	#[test]
 // 	fn soft_start() {
 // 		let mut expectations = vec![
@@ -696,7 +691,7 @@ where
 // 			),
 // 			spi::Transaction::transaction_end(),
 // 		];
-// 
+//
 // 		let mut dac = i25::MIN;
 // 		for _ in 0..DAC_STEPS {
 // 			dac = dac.saturating_add(DAC_RAMP_STEP);
@@ -711,7 +706,7 @@ where
 // 				spi::Transaction::transaction_end(),
 // 			]);
 // 		}
-// 
+//
 // 		expectations.append(&mut vec![
 // 			spi::Transaction::transaction_start(),
 // 			spi::Transaction::transfer_in_place(
@@ -726,14 +721,14 @@ where
 // 			),
 // 			spi::Transaction::transaction_end(),
 // 		]);
-// 
+//
 // 		let spi_mock = spi::Mock::new(&expectations);
-// 
+//
 // 		let mut lt = LT8722::new(spi_mock, NoPin {}, NoPin {}, NoPin {}, MockDelay)
 // 			.expect("Failed to construct");
-// 
+//
 // 		lt.soft_start().await.expect("Failed to soft start");
-// 
+//
 // 		let (mut spi_mock, ..) = lt.free();
 // 		spi_mock.done()
 // 	}
